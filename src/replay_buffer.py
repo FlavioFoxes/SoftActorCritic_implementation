@@ -18,7 +18,7 @@ class ReplayBuffer:
         self.action_buffer = np.zeros((max_size, num_actions))  
         self.next_state_buffer = np.zeros((max_size, shape))
         self.reward_buffer = np.zeros(max_size)
-        self.done_buffer = np.zeros(max_size, dtype=np.bool)
+        self.done_buffer = np.zeros(max_size, dtype=bool)
 
         self.current_buffer_index = 0
         self.buffer_size = max_size

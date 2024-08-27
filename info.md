@@ -10,14 +10,19 @@ The **Target** network is used for the updates, because of the update of Q-netwo
 ## Implementation
 ### Elements
 - **Replay Buffer** `[x]`
-- **Actor network** `[]`
-- **Q1 network** `[]`
-- **Q2 network** `[]`
+- **Actor network** `[?]`
+- **Q1 network** `[?]`
+- **Q2 network** `[?]`
 - **Value network** `[]`\
 (I think it's not necessary, depends on the implementation)
-- **Target network** `[]`\
+- **Target network** `[?]`\
 (w.r.t. Value/Q networks)
 - **Alpha Network** `[]`
+
+### Notes
+- **Q1** and **Q2** are the Critic networks. They are implemented, but must be checked
+- At the moment, the idea is to use the target networks w.r.t. the **Q** networks. So we need two **Target networks** 
+
 
 ### Specifics
 - **Replay Buffer**: it has to contain all the transitions **(state, action, reward, next state,done)**; we need two functions, `store_transition` to memorize a transition in the buffer, `sample_from_buffer` to extract a batch of the memorized samples
