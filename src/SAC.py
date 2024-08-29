@@ -35,8 +35,8 @@ class SAC():
         self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
         self.replay_buffer = ReplayBuffer(max_size=buffer_size, state_dim=environment.observation_space.shape[0], action_dim=environment.action_space.shape[0])
-        self.q1_network = CriticNetwork(state_dim=environment.observation_space.shape[0], action_dim=environment.action_space.shape[0])
-        self.q2_network = CriticNetwork(state_dim=environment.observation_space.shape[0], action_dim=environment.action_space.shape[0])
+        self.q1_network = CriticNetwork(state_dim=environment.observation_space.shape, action_dim=environment.action_space.shape)
+        self.q2_network = CriticNetwork(state_dim=environment.observation_space.shape, action_dim=environment.action_space.shape)
         self.policy = ActorNetwork(state_dim=environment.observation_space.shape[0], max_actions_values=2.0)
         # self.alpha = AlphaNetwork()
         self.alpha = ent_coef
@@ -123,7 +123,7 @@ class SAC():
                 self.replay_buffer.store_transition(state, action, reward, next_state, done)
                 
                 # 9:    If the episode (after action have been applied) is not finished
-                if not done and k >= 1:
+                if not done and k >= 17:    # TODO: to remove
                     # 10:   For the number of update steps
                     for j in range(self.gradient_steps):
                         # 11:   Sample randomly a batch of transitions   
@@ -132,12 +132,14 @@ class SAC():
                         # many batches
                         states_batch, actions_batch, next_states_batch, rewards_batch, dones_batch = self.replay_buffer.sample_from_buffer(self.batch_size)
                         next_states = torch.tensor(next_states_batch, dtype=torch.float)
-                        # print("next states:     ", next_states)
+                        print("next states:     ", next_states)
                         # 12: Compute values of target networks
 
                         # TODO: Actor must take in input a tensor representing one state.
                         # Check if I can compute everything for the all states together
                         actions, log_prob = self.policy.sample_action_logprob(next_states, reparam_trick=False)
+                        q1_target_values = self.q1_network_target.forward(next_states, actions)
+                        print("shape:       ", q1_target_values)
                 k += 1
                 # done = True # just for test
 
