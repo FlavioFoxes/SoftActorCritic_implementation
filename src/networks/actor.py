@@ -16,12 +16,12 @@ class ActorNetwork(nn.Module):
         super(ActorNetwork, self).__init__()
         
         # Layers of the network
-        self.linear1 = nn.Linear(in_features = state_dim, out_features = layers_dim)
+        self.linear1 = nn.Linear(in_features = state_dim, out_features = layers_dim, dtype=torch.float)
         self.drop1 = nn.Dropout(p=0.6)
-        self.linear2 = nn.Linear(in_features = layers_dim, out_features = layers_dim)
+        self.linear2 = nn.Linear(in_features = layers_dim, out_features = layers_dim, dtype=torch.float)
         self.drop2 = nn.Dropout(p=0.6)
-        self.linear_mean = nn.Linear(in_features = layers_dim, out_features = 1)
-        self.linear_variance = nn.Linear(in_features = layers_dim, out_features = 1)
+        self.linear_mean = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float)
+        self.linear_variance = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float)
         
         # For each action, represent the max value it can have.
         # This is done because in the sampling function, we apply
@@ -53,10 +53,14 @@ class ActorNetwork(nn.Module):
     # TODO: check this function
     # This function must take as argument the state and
     # it samples the action to apply in that state
+    # NOTE: state is a tensor
     def sample_action_logprob(self, state, reparam_trick = True):
+        # Compute mean and variance to create the Normal distribution
         mean, variance = self.forward(state)
         distributions = Normal(mean, variance)
 
+        # If reparameterization trick is TRUE,
+        # we sample from the distribution using added noise
         if(reparam_trick):
             samples = distributions.rsample()
         else:
@@ -66,8 +70,11 @@ class ActorNetwork(nn.Module):
         # Then they have to be multiplied by the max values the actions can take
         action = F.tanh(samples)*self.max_actions_values
 
+        # TODO: check the summation
         # Log probabilities used in the update of networks weights
-        log_probs = distributions.log_prob(samples) - (distributions.log_prob(1 - action.pow(2))).sum(1, keepdim=True)
+        summation = (distributions.log_prob(1 - action.pow(2)))#.sum(1, keepdim=True)
+        # print(distributions.log_prob(samples))
+        log_probs = distributions.log_prob(samples) - summation
 
         # Return the action and the log prob
         return action, log_probs

@@ -16,6 +16,10 @@ def check_model_device(model):
     for name, param in model.named_parameters():
         print(f"{name} is on {param.device}")
 
+def print_model_parameters(model):
+    print("Weights:")
+    for name, param in model.named_parameters():
+        print(f"{name}: {param.data}")
 
 def check_gradients(model):
     print("Gradients:")

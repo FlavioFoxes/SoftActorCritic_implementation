@@ -13,10 +13,10 @@ import random
 #   - store_transition [DONE]
 #   - sample_from_buffer [DONE]
 class ReplayBuffer:
-    def __init__(self, max_size, shape, num_actions) -> None:
-        self.state_buffer = np.zeros((max_size, shape))
-        self.action_buffer = np.zeros((max_size, num_actions))  
-        self.next_state_buffer = np.zeros((max_size, shape))
+    def __init__(self, max_size, state_dim, action_dim) -> None:
+        self.state_buffer = np.zeros((max_size, state_dim))
+        self.action_buffer = np.zeros((max_size, action_dim))  
+        self.next_state_buffer = np.zeros((max_size, state_dim))
         self.reward_buffer = np.zeros(max_size)
         self.done_buffer = np.zeros(max_size, dtype=bool)
 
@@ -46,7 +46,7 @@ class ReplayBuffer:
         # Extract samples from the buffers
         states_sampled = self.state_buffer[indices]
         actions_sampled = self.action_buffer[indices]
-        next_states_sampled = self.next_state_state_buffer[indices]
+        next_states_sampled = self.next_state_buffer[indices]
         rewards_sampled = self.reward_buffer[indices]
         dones_sampled = self.done_buffer[indices]
 
