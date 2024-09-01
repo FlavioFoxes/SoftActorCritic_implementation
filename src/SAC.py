@@ -114,18 +114,15 @@ class SAC():
         dir = self.get_logdir_name(tb_log_name=tb_log_name)
         self.writer = SummaryWriter(log_dir=dir)
 
-        # Move everything to device
-        # utils.check_model_device(self.policy)
-        
-        # 1-2:  Initialize parameters of the networks
+        # 1-2:  Initialize parameters of the networks, and move to device
         self.initialize_networks_parameters()
-        # utils.print_model_parameters(self.policy)
+        self.move_to_device()
 
-        # # NOTE:
-        # # Observations and actions are tuples. In our environments (Classic Control)
-        # # the tuples are composed by just one element ( ex: (3,) )
-        # print("obs shape:   ", self.env.observation_space.shape)
-        # print("action shape:   ", self.env.action_space.shape)
+        # DEBUG:
+        # utils.check_model_device(self.policy)
+        # utils.check_model_device(self.q1_network)
+        # utils.check_model_device(self.q2_network)
+        # utils.print_model_parameters(self.policy)
 
         # Total number of steps done in all the episodes
         num_total_steps = 0
@@ -172,6 +169,8 @@ class SAC():
                 # print("next state:  ", next_state)
                 # print("reward:  ", reward)
                 # 7)    Store the transition in the replay buffer
+                # Convert state from tensor to numpy arrayù
+                state = state.to('cpu').detach().numpy()
                 self.replay_buffer.store_transition(state, action, reward, next_state, done)
                 
                 # 9)    If the episode (after action have been applied) is not finished
@@ -203,7 +202,7 @@ class SAC():
                         self.optimizer_q1.zero_grad()
                         q1_output = self.q1_network(states, actions)
                         q1_loss = self.criterion_q(q1_output, y)
-                        q1_loss_records.append(q1_loss.detach().numpy())
+                        q1_loss_records.append(q1_loss.to('cpu').detach().numpy())
                         q1_loss.backward(retain_graph=True)
                         self.optimizer_q1.step()
                         
@@ -215,7 +214,7 @@ class SAC():
                         self.optimizer_q2.zero_grad()
                         q2_output = self.q2_network(states.detach(), actions.detach())
                         q2_loss = self.criterion_q(q2_output, y.detach())
-                        q2_loss_records.append(q2_loss.detach().numpy())
+                        q2_loss_records.append(q2_loss.to('cpu').detach().numpy())
                         q2_loss.backward(retain_graph=True)
                         self.optimizer_q2.step()
                         # print("q1 loss:     ", q1_loss)
@@ -229,7 +228,7 @@ class SAC():
                         q2_values = self.q2_network.forward(states, actions_policy)
                         q_min_values = torch.minimum(q1_values, q2_values)
                         actor_loss = torch.mean(q_min_values - self.alpha*log_prob_policy)
-                        actor_loss_records.append(actor_loss.detach().numpy())
+                        actor_loss_records.append(actor_loss.to('cpu').detach().numpy())
                         actor_loss.backward(retain_graph=True)
                         self.optimizer_actor.step()
 
@@ -261,7 +260,6 @@ class SAC():
 
             self.writer.add_scalar("Total reward per episode", total_reward, i)        
             print("TOTAL:       ", total_reward)
-
 
 
 if __name__=="__main__":
