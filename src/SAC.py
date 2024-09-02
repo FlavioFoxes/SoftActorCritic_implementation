@@ -38,8 +38,8 @@ def init_weights(m):
 class SAC():
     # TODO: check from stable-baselines (or openAI) all parameters I need, 
     #       and insert them
-    def __init__(self, environment=None, lr = 3e-4, buffer_size = 1000000, batch_size = 100, tau = 0.005, gamma = 0.99,
-                 gradient_steps = 1, ent_coef = 0.1, learning_starts = 100,
+    def __init__(self, environment=None, lr = 3e-5, buffer_size = 1000000, batch_size = 100, tau = 0.005, gamma = 0.99,
+                 gradient_steps = 1, ent_coef = 0.5, learning_starts = 100,
                  tensorboard_log = '/home/flavio/Scrivania/Soft-Actor-Critic-implementation/logs') -> None:
 
 
@@ -50,7 +50,7 @@ class SAC():
         self.replay_buffer = ReplayBuffer(max_size=buffer_size, state_dim=environment.observation_space.shape[0], action_dim=environment.action_space.shape[0])
         self.q1_network = CriticNetwork(state_dim=environment.observation_space.shape, action_dim=environment.action_space.shape)
         self.q2_network = CriticNetwork(state_dim=environment.observation_space.shape, action_dim=environment.action_space.shape)
-        self.policy = ActorNetwork(state_dim=environment.observation_space.shape[0], max_actions_values=2.0)
+        self.policy = ActorNetwork(state_dim=environment.observation_space.shape[0], max_actions_values=environment.action_space.high, device=self.device)
         # self.alpha = AlphaNetwork()
         self.alpha = ent_coef
         self.env = environment
@@ -131,7 +131,7 @@ class SAC():
             # Number of steps in the current episode
             num_steps_in_episode = 0
             # Reset the environment because it's a new episode
-            observation, _ = self.env.reset()
+            state, _ = self.env.reset()
             done = False
             # It contains the sum of the rewards of the current episode
             total_reward = 0
@@ -145,8 +145,9 @@ class SAC():
                 print("step in episode:     ", num_steps_in_episode)
                 print("total steps:     ", num_total_steps)
                 
+                # print("STATE:       ", state)
                 # 4)    Save the state as a tensor (and send to device because the networks are there)
-                state = torch.tensor(observation, dtype=torch.float).to(self.device)
+                state = torch.tensor(state, dtype=torch.float).to(self.device)
                 # print("state:   ", state)
 
                 # Render the state to visualize it
@@ -154,15 +155,19 @@ class SAC():
 
                 # 4)    Sample an action through Actor network
                 # It returns a tensor. The env.step want a numpy array
+                # utils.print_model_parameters(self.policy)
+                # utils.check_gradients(self.policy)
+
                 action,_ = self.policy.sample_action_logprob(state, reparam_trick = False)
                 # NOTE: Tensor is on device (that can be also cuda), to convert it to numpy array
                 #       it needs it's on cpu and requires_grad=False, so we need to detach it
                 #       (https://stackoverflow.com/questions/49768306/pytorch-tensor-to-numpy-array)
                 action = action.to('cpu').detach().numpy()
-
+                # print("ACTION:      ", action)
                 # 5-6)  Make a step in the environment, and observe (next state, reward, done)
                 next_state, reward, terminated, truncated, _ = self.env.step(action)
                 done = terminated or truncated
+                # print("NEXT STATE:      ", next_state)      # CONTINUA DA QUI
                 # print("TERMINATED:        ", terminated)
                 # print("TRUNCATED:       ", truncated)
                 total_reward += reward
@@ -173,6 +178,9 @@ class SAC():
                 state = state.to('cpu').detach().numpy()
                 self.replay_buffer.store_transition(state, action, reward, next_state, done)
                 
+                # The current state becomes the next state
+                state = next_state
+
                 # 9)    If the episode (after action have been applied) is not finished
                 if not done and num_total_steps >= self.learning_starts:    # TODO: to remove
                     # 10)   For the number of update steps
@@ -236,14 +244,14 @@ class SAC():
                         with torch.no_grad():
                             for param, param_target in zip(self.q1_network.parameters(), self.q1_network_target.parameters()):
                                 if param.requires_grad and param_target.requires_grad:
-                                    param_target = self.tau * param_target + (1-self.tau) * param
+                                    param_target = self.tau * param + (1-self.tau) * param_target
 
 
                         # 15) Update target networks (Q2 target)
                         with torch.no_grad():
                             for param, param_target in zip(self.q2_network.parameters(), self.q2_network_target.parameters()):
                                 if param.requires_grad and param_target.requires_grad:
-                                    param_target = self.tau * param_target + (1-self.tau) * param
+                                    param_target = self.tau * param + (1-self.tau) * param_target
                         
                         
                 num_steps_in_episode += 1

@@ -12,16 +12,16 @@ import torch.optim as optim
 #   - returns:  mean and covariance of the normal distribution, through which
 #               we can sample the action
 class ActorNetwork(nn.Module):
-    def __init__(self, state_dim, max_actions_values, layers_dim = 256):
+    def __init__(self, state_dim, max_actions_values, layers_dim = 256, device = None):
         super(ActorNetwork, self).__init__()
-        
+        self.device = device
         # Layers of the network
         self.linear1 = nn.Linear(in_features = state_dim, out_features = layers_dim, dtype=torch.float)
         self.drop1 = nn.Dropout(p=0.6)
         self.linear2 = nn.Linear(in_features = layers_dim, out_features = layers_dim, dtype=torch.float)
         self.drop2 = nn.Dropout(p=0.6)
         self.linear_mean = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float)
-        self.linear_variance = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float)
+        self.linear_stddev = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float)
         
         # For each action, represent the max value it can have.
         # This is done because in the sampling function, we apply
@@ -45,10 +45,10 @@ class ActorNetwork(nn.Module):
         
         # Variance is clipped in a positive interval, to avoid
         # the distribution is arbitrary large 
-        variance = self.linear_variance(x)
-        variance = variance.clamp(min = 1e-6, max = 1)
+        stddev = self.linear_stddev(x)
+        stddev = stddev.clamp(min = 1e-6, max = 1)
 
-        return mean, variance
+        return mean, stddev
 
     # TODO: check this function
     # This function must take as argument the state and
@@ -56,8 +56,8 @@ class ActorNetwork(nn.Module):
     # NOTE: state is a tensor
     def sample_action_logprob(self, state, reparam_trick = True):
         # Compute mean and variance to create the Normal distribution
-        mean, variance = self.forward(state)
-        distributions = Normal(mean, variance)
+        mean, stddev = self.forward(state)
+        distributions = Normal(mean, stddev)
 
         # If reparameterization trick is TRUE,
         # we sample from the distribution using added noise
@@ -68,11 +68,14 @@ class ActorNetwork(nn.Module):
 
         # Usage of tanh allows to make the samples bounded.
         # Then they have to be multiplied by the max values the actions can take
-        action = F.tanh(samples)*self.max_actions_values
-
+        # NOTE: epsilon is necessary, otherwise rsample gives problems
+        epsilon = 1e-6
+        tanh_samples = F.tanh(samples)
+        action = tanh_samples*(torch.tensor(self.max_actions_values, dtype=torch.float).to(self.device))
         # TODO: check the summation
         # Log probabilities used in the update of networks weights
-        summation = (distributions.log_prob(1 - action.pow(2)))#.sum(1, keepdim=True)
+        summation = torch.log(1 - tanh_samples.pow(2) + epsilon)
+        # print("summation:      ", summation)
         # print(distributions.log_prob(samples))
         log_probs = distributions.log_prob(samples) - summation
 
