@@ -35,19 +35,19 @@ class ActorNetwork(nn.Module):
 
         x = self.linear1(input)
         x = F.relu(x)
-        x = self.drop1(x)
+        # x = self.drop1(x)
 
         x = self.linear2(x)
         x = F.relu(x)
-        x = self.drop2(x)
+        # x = self.drop2(x)
 
         mean = self.linear_mean(x)
         
         # Variance is clipped in a positive interval, to avoid
         # the distribution is arbitrary large 
         stddev = self.linear_stddev(x)
-        stddev = stddev.clamp(min = 1e-6, max = 1)
-
+        stddev = stddev.clamp(min = 1e-6, max = 0.5)
+        # print("STDDEV:      ", stddev)
         return mean, stddev
 
     # TODO: check this function
@@ -61,17 +61,16 @@ class ActorNetwork(nn.Module):
 
         # If reparameterization trick is TRUE,
         # we sample from the distribution using added noise
-        if(reparam_trick):
-            samples = distributions.rsample()
-        else:
-            samples = distributions.sample()
+        samples = distributions.rsample() if reparam_trick else distributions.sample()
 
         # Usage of tanh allows to make the samples bounded.
         # Then they have to be multiplied by the max values the actions can take
         # NOTE: epsilon is necessary, otherwise rsample gives problems
         epsilon = 1e-6
-        tanh_samples = F.tanh(samples)
+        tanh_samples = torch.tanh(samples)
+        # print("TANH:        ", tanh_samples)
         action = tanh_samples*(torch.tensor(self.max_actions_values, dtype=torch.float).to(self.device))
+        # print("ACTION:      ", action)
         # TODO: check the summation
         # Log probabilities used in the update of networks weights
         summation = torch.log(1 - tanh_samples.pow(2) + epsilon)

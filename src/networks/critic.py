@@ -33,11 +33,11 @@ class CriticNetwork(nn.Module):
 
         x = self.linear1(input)
         x = F.relu(x)
-        x = self.drop1(x)
+        # x = self.drop1(x)
 
         x = self.linear2(x)
         x = F.relu(x)
-        x = self.drop2(x)
+        # x = self.drop2(x)
 
         x = self.linear3(x)
 

@@ -42,7 +42,6 @@ class ReplayBuffer:
         size = min(self.buffer_size, self.current_buffer_index)
         # Extract indices to be sampled from the buffers
         indices = random.sample(range(size), batch_size)
-
         # Extract samples from the buffers
         states_sampled = self.state_buffer[indices]
         actions_sampled = self.action_buffer[indices]
