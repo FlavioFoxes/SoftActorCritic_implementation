@@ -1,35 +1,40 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
+import torch.nn as nn
 from torch.distributions import Normal
-from torch import flatten, sigmoid
-import torch.optim as optim
+
 
 
 # Actor network: it represents the policy, so how the action is chosen given the state
-# Specifics:
-#   - input:    the state
-#   - returns:  mean and covariance of the normal distribution, through which
-#               we can sample the action
 class ActorNetwork(nn.Module):
+    '''
+    Parameters:
+        -   state_dim:              shape of the observation space
+        -   max_action_values:      the highest value the action can take
+        -   layers_dim:             dimension of the linear layers
+        -   device:                 where to do computation (cpu or cuda)
+    '''
     def __init__(self, state_dim, max_actions_values, layers_dim = 256, device = None):
         super(ActorNetwork, self).__init__()
         self.device = device
-        # Layers of the network
-        self.linear1 = nn.Linear(in_features = state_dim, out_features = layers_dim, dtype=torch.float)
-        self.drop1 = nn.Dropout(p=0.6)
-        self.linear2 = nn.Linear(in_features = layers_dim, out_features = layers_dim, dtype=torch.float)
-        self.drop2 = nn.Dropout(p=0.6)
-        self.linear_mean = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float)
-        self.linear_stddev = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float)
-        
-        # For each action, represent the max value it can have.
-        # This is done because in the sampling function, we apply
-        # tanh function to make it bounded between (-1,1), so then
-        # it rescale according to own purposes
-        # It is a tensor
         self.max_actions_values = max_actions_values
+        
+        # Layers of the network
+        self.linear1 = nn.Linear(in_features = state_dim[0], out_features = layers_dim, dtype=torch.float32)
+        self.linear2 = nn.Linear(in_features = layers_dim, out_features = layers_dim, dtype=torch.float32)
+        self.linear_mean = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float32)
+        self.linear_stddev = nn.Linear(in_features = layers_dim, out_features = 1, dtype=torch.float32)
+        
 
+    '''
+        Parameters: 
+        -   state:                  state (tensor) from which we want to compute the action
+
+        Returns:
+        -   mean:                   mean of the Normal distribution, through which we compute the action
+        -   stddev:                 standard deviation of the Normal distribution, through which we compute the action
+    '''
     def forward(self, state):
         input = state
 
@@ -42,21 +47,33 @@ class ActorNetwork(nn.Module):
         # x = self.drop2(x)
 
         mean = self.linear_mean(x)
-        
-        # Variance is clipped in a positive interval, to avoid
-        # the distribution is arbitrary large 
         stddev = self.linear_stddev(x)
-        stddev = stddev.clamp(min = 1e-6, max = 0.5)
-        # print("STDDEV:      ", stddev)
+        
+        # Standard deviation is clipped in a positive interval, to avoid
+        # the distribution is arbitrary large 
+        stddev = stddev.clamp(min = 1e-6, max = 1)
         return mean, stddev
 
-    # TODO: check this function
-    # This function must take as argument the state and
-    # it samples the action to apply in that state
-    # NOTE: state is a tensor
+
+    '''
+    This function compute the Normal distribution, sample an action from it and
+    computes its log_prob
+
+        Parameters:
+        -   state:                  state (tensor) from which we want to compute the action
+        -   reparam_trick:          if we want to use reparametrization trick
+
+        Returns:
+        -   actions:                sampled action
+        -   log_probs
+    
+    NOTE: state can be also a batch of states -> action and log_probs will be a batch of actions, log_probs
+    '''
     def sample_action_logprob(self, state, reparam_trick = True):
+        max_action_tensor = torch.tensor(self.max_actions_values, dtype=torch.float32).to(self.device)
+        
         # Compute mean and variance to create the Normal distribution
-        mean, stddev = self.forward(state)
+        mean, stddev = self(state)
         distributions = Normal(mean, stddev)
 
         # If reparameterization trick is TRUE,
@@ -64,36 +81,31 @@ class ActorNetwork(nn.Module):
         samples = distributions.rsample() if reparam_trick else distributions.sample()
 
         # Usage of tanh allows to make the samples bounded.
-        # Then they have to be multiplied by the max values the actions can take
-        # NOTE: epsilon is necessary, otherwise rsample gives problems
+        # Then they have to be multiplied by the max values the actions can take,
+        # to guarantee original action scale.
+        # NOTE: epsilon is necessary, to avoid cases where log(0)
         epsilon = 1e-6
         tanh_samples = torch.tanh(samples)
-        # print("TANH:        ", tanh_samples)
-        action = tanh_samples*(torch.tensor(self.max_actions_values, dtype=torch.float).to(self.device))
-        # print("ACTION:      ", action)
-        # TODO: check the summation
-        # Log probabilities used in the update of networks weights
-        summation = torch.log(1 - tanh_samples.pow(2) + epsilon)
-        # print("summation:      ", summation)
-        # print(distributions.log_prob(samples))
-        log_probs = distributions.log_prob(samples) - summation
+        action = tanh_samples * max_action_tensor
 
+        # Log probabilities used in the update of networks weights
+        summation = torch.log((1 - tanh_samples.pow(2)) * max_action_tensor + epsilon)
+        log_probs = distributions.log_prob(samples) - summation
+        log_probs = log_probs.sum(dim = 1, keepdim = True)
+        
         # Return the action and the log prob
         return action, log_probs
 
-
-# For TESTING
-# TODO: check if state.shape[0] is correct to take the dimension of 
-#       the state or not
-if __name__=="__main__":
-    state = torch.randn(3)
-    print("state:      ", state)
-    actor = ActorNetwork(state_dim=state.shape[0], max_actions_values=torch.randn(3))
-
-    mean, variance = actor(state)
-    print("mean:        ", mean)
-    print("variance:    ", variance)
-
-
-
+if __name__ == "__main__":
+    import gymnasium as gym
+    from actor import ActorNetwork
+    from critic import CriticNetwork
     
+    env = gym.make('Pendulum-v1')
+    state, _ = env.reset()
+    state = torch.tensor(state, dtype=torch.float32).unsqueeze(0)
+    print(state)
+    policy = ActorNetwork(state_dim = env.observation_space.shape, env = env)
+
+    action, log_probs = policy.sample_action_logprob(state)
+

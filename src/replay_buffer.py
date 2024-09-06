@@ -1,18 +1,23 @@
 import numpy as np
 import random
 
-# Replay buffer is a buffer containing all last N steps/episodes
-# of the envirnoment. It is composed of different buffers:
-#   - states:            state in which it starts
-#   - actions:           action applied when it is in state
-#   - rewards:           reward obtained passing from state to next_state
-#   - next_states:       state where it arrives when applied action to state
-#   - dones:             done flag when it is in state
-#
-# It has to contain two functions:
-#   - store_transition [DONE]
-#   - sample_from_buffer [DONE]
+'''
+ Replay buffer is a buffer containing all last N steps/episodes
+ of the envirnoment. It is composed of different buffers:
+   - states:            state in which it starts
+   - actions:           action applied when it is in state
+   - rewards:           reward obtained passing from state to next_state
+   - next_states:       state where it arrives when applied action to state
+   - dones:             done flag when it is in state
+'''
 class ReplayBuffer:
+    '''
+    Parameters:
+        -   max_size:               maximum size of the buffer
+        -   state_dim:              dimension of the state
+        -   action_dim:             dimension of the action
+    '''
+    
     def __init__(self, max_size, state_dim, action_dim) -> None:
         self.state_buffer = np.zeros((max_size, state_dim))
         self.action_buffer = np.zeros((max_size, action_dim))  
@@ -20,9 +25,20 @@ class ReplayBuffer:
         self.reward_buffer = np.zeros(max_size)
         self.done_buffer = np.zeros(max_size, dtype=bool)
 
+        # Represents the index of last element of the buffer
         self.current_buffer_index = 0
+        # Represents the total size of the buffer
         self.buffer_size = max_size
 
+    '''
+    Store a transition in the buffer
+        Parameters:
+        - state:                    starting state of the transition
+        - action:                   action applied in the starting state
+        - reward:                   reward obtained passing from state to next_state
+        - next_state:               ending state of the transition
+        - done:                     (bool) if episode is terminated
+    '''
     def store_transition(self, state, action, reward, next_state, done):
         # This is done because, after the buffer is full,
         # it restarts writing from the beginning
