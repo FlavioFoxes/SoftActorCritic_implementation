@@ -64,12 +64,13 @@ class ActorNetwork(nn.Module):
         -   reparam_trick:          if we want to use reparametrization trick
 
         Returns:
-        -   actions:                sampled action
-        -   log_probs
+        -   actions:                sampled actions
+        -   log_probs:              log probs of the actions
     
     NOTE: state can be also a batch of states -> action and log_probs will be a batch of actions, log_probs
     '''
     def sample_action_logprob(self, state, reparam_trick = True):
+        # Transform max_action_values in tensor, and send to device
         max_action_tensor = torch.tensor(self.max_actions_values, dtype=torch.float32).to(self.device)
         
         # Compute mean and variance to create the Normal distribution

@@ -53,6 +53,18 @@ class ReplayBuffer:
 
         self.current_buffer_index += 1
 
+
+    '''
+    Sample from buffer a batch of transitions
+        Parameters:
+        - batch_size:               batch size of transitions to sample
+        Returns:
+        - states_sampled:           starting states of the sampled transitions
+        - actions_sampled:          actions applied in the starting sampled states  
+        - next_states_sampled:      ending states of the sampled transitions
+        - rewards_sampled:          rewards obtained passing from sampled states to sampled next_states
+        - dones_sampled:            (bool) if corresponding episodes are the final ones
+    '''
     def sample_from_buffer(self, batch_size):
         # Maximum size which contains valid sample that could be extracted
         size = min(self.buffer_size, self.current_buffer_index)
