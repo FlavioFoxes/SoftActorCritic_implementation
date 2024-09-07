@@ -1,7 +1,7 @@
 import gymnasium as gym
 import torch
 from src.algorithm.SAC import SAC
-from networks.actor import ActorNetwork
+from src.networks.actor import ActorNetwork
 
 # Path where to save policy model
 POLICY_DIR = '/home/flavio/Scrivania/Soft-Actor-Critic-implementation/trained_models/policy.pth'

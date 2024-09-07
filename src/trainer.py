@@ -1,5 +1,5 @@
 import gymnasium as gym
-from algorithm.SAC import SAC
+from src.algorithm.SAC import SAC
 
 def trainer():
     env = gym.make('Pendulum-v1')
