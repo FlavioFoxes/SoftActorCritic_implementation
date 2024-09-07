@@ -246,6 +246,7 @@ class SAC():
                 self.writer.add_scalar("Q2-Loss per episode", q2_loss.item(), i)
                 self.writer.add_scalar("Q-Loss per episode", q_loss.item(), i)
                 self.writer.add_scalar("ACTOR-Loss per episode", actor_loss.item(), i)
+                self.writer.add_scalar("Alpha value", self.alpha, i)
 
         # Save policy
         self.save()
