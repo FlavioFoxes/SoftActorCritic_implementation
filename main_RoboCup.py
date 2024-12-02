@@ -10,14 +10,14 @@ env = gym.make('RoboCup-v1')
 
 # policy_kwargs = dict(net_arch=[256, 256, 256, 256])  # default
 # Crea il modello PPO
-model = SAC(environment=env, ent_coef="auto", lr=3e-3, batch_size= 100, learning_starts=200, tensorboard_log=LOGS_PATH)
+model = SAC(environment=env, ent_coef="auto", lr=3e-3, batch_size= 3, learning_starts=4, tensorboard_log=LOGS_PATH)
 
 # Addestra il modello. Se nel mentre viene interrotto, chiudi tutte le socket
 # TODO: per ora, continua ad uccidere il processo a mano, usando i comandi
 # lsof -i :12345
 # kill <pid>
 try:
-    model.learn(num_episodes=1000, tb_log_name="MySAC_RoboCup")
+    model.learn(num_episodes=1000, tb_log_name="Gaussian_logs")
     model.save("sac_robocup")
     # Chiudi tutte le socket
     env.close()

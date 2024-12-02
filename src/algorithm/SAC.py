@@ -10,7 +10,7 @@ import os
 
 from src.networks.actor import ActorNetwork
 from src.networks.critic import CriticNetwork
-from src.algorithm.replay_buffer import ReplayBuffer
+from src.algorithm.gaussian_replay_buffer import GaussianReplayBuffer
 import src.utils.utils as utils
 
 # Path where to save policy model
@@ -32,8 +32,8 @@ class SAC():
         - device:                   device
         - tensorboard_log:          path where to save logs of the trainings
     '''
-    def __init__(self, environment=None, lr = 0.0003, buffer_size = 1000000, batch_size = 256, tau = 0.005, gamma = 0.99,
-                 gradient_steps = 1, ent_coef = "auto", learning_starts = 5000, 
+    def __init__(self, environment=None, lr = 0.0003, buffer_size = 10000, batch_size = 100, tau = 0.005, gamma = 0.99,
+                 gradient_steps = 1, ent_coef = "auto", learning_starts = 500, 
                  device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'),
                  tensorboard_log = '/home/flavio/Scrivania/Soft-Actor-Critic-implementation/logs'):
         
@@ -41,7 +41,7 @@ class SAC():
         self.tensorboard_log = tensorboard_log
         self.env = environment
 
-        self.replay_buffer = ReplayBuffer(max_size=buffer_size, state_dim=environment.observation_space.shape[0], action_dim=environment.action_space.shape[0])
+        self.replay_buffer = GaussianReplayBuffer(max_size=buffer_size, state_dim=environment.observation_space.shape[0], action_dim=environment.action_space.shape[0])
         self.q1_network = CriticNetwork(state_dim=environment.observation_space.shape, action_dim=environment.action_space.shape)
         self.q2_network = CriticNetwork(state_dim=environment.observation_space.shape, action_dim=environment.action_space.shape)
         self.q1_network_target = CriticNetwork(state_dim=environment.observation_space.shape, action_dim=environment.action_space.shape)
@@ -240,7 +240,7 @@ class SAC():
                 print(f"Episode: {i}        Alpha: {self.alpha}")
 
             # Logs for TensorBoard
-            if num_total_steps > self.learning_starts:
+            if num_total_steps > self.learning_starts + 1:
                 self.writer.add_scalar("Total Reward per episode", np.sum(reward_record), i)
                 self.writer.add_scalar("Q1-Loss per episode", q1_loss.item(), i)
                 self.writer.add_scalar("Q2-Loss per episode", q2_loss.item(), i)
