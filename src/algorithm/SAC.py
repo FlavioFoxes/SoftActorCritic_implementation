@@ -14,7 +14,7 @@ from src.algorithm.gaussian_replay_buffer import GaussianReplayBuffer
 import src.utils.utils as utils
 
 # Path where to save policy model
-POLICY_DIR = '/home/flavio/Scrivania/Soft-Actor-Critic-implementation/trained_models/policy.pth'
+POLICY_DIR = '/home/flavio/Scrivania/Soft-Actor-Critic-implementation/trained_models/pendulum.pth'
 
 # Class that contains the whole algorithm
 class SAC():
@@ -90,9 +90,9 @@ class SAC():
     '''
     Return the dir name
         Parameters:
-        - tb_log_name:                  name of folder where to save logs for tensorboard
+            - tb_log_name:                  name of folder where to save logs for tensorboard
         Returns:
-        - dir:                          (incremental) path where to save logs
+            - dir:                          (incremental) path where to save logs
     '''
     def get_logdir_name(self, tb_log_name):
         i = 0
@@ -113,7 +113,7 @@ class SAC():
         - num_episodes:                 number of episodes for the training
         - tb_log_name:                  name of folder where to save logs for tensorboard
     '''
-    def learn(self, num_episodes=250, tb_log_name="SAC"):
+    def learn(self, num_episodes=250, tb_log_name="SAC", log_interval=1):
         
         # Create Logger for debugging, with incremental filename
         dir = self.get_logdir_name(tb_log_name=tb_log_name)
@@ -235,12 +235,12 @@ class SAC():
                 num_total_steps += 1
             
             # Print Reward and Alpha every 5 steps
-            if i % 5 == 0:
+            if i % log_interval == 0:
                 print(f"Episode: {i}        Reward: {np.sum(reward_record)}")
                 print(f"Episode: {i}        Alpha: {self.alpha}")
 
             # Logs for TensorBoard
-            if num_total_steps > self.learning_starts + 1:
+            if num_total_steps > self.learning_starts + 1 and i%log_interval==0:
                 self.writer.add_scalar("Total Reward per episode", np.sum(reward_record), i)
                 self.writer.add_scalar("Q1-Loss per episode", q1_loss.item(), i)
                 self.writer.add_scalar("Q2-Loss per episode", q2_loss.item(), i)

@@ -94,8 +94,11 @@ class GaussianReplayBuffer:
         self.done_buffer = np.delete(self.done_buffer, -1)
 
         # Increase index of the last element of the buffers
-        self.current_buffer_index += 1
-        print("REWARD BUFFER:  ", self.reward_buffer[:self.current_buffer_index])
+        if self.current_buffer_index < self.buffer_size-1:
+            self.current_buffer_index += 1 
+
+        # print("Reward size:     ", self.reward_buffer.shape)
+        # print("REWARD BUFFER:  ", self.reward_buffer[:self.current_buffer_index])
 
     '''
     Sample from buffer a batch of transitions
