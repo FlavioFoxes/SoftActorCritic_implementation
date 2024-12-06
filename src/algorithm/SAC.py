@@ -7,14 +7,13 @@ import copy
 from torch.utils.tensorboard import SummaryWriter
 import gymnasium as gym
 import os
-
-from src.networks.actor import ActorNetwork
-from src.networks.critic import CriticNetwork
-from src.algorithm.gaussian_replay_buffer import GaussianReplayBuffer
-import src.utils.utils as utils
+from SoftActorCritic_implementation.src.networks.actor import ActorNetwork
+from SoftActorCritic_implementation.src.networks.critic import CriticNetwork
+from SoftActorCritic_implementation.src.algorithm.gaussian_replay_buffer import GaussianReplayBuffer
+import SoftActorCritic_implementation.src.utils.utils as utils
 
 # Path where to save policy model
-POLICY_DIR = '/home/flavio/Scrivania/Soft-Actor-Critic-implementation/trained_models/pendulum.pth'
+POLICY_DIR = '/home/flavio/Scrivania/RoboCup/spqrnao2024/external_client/SoftActorCritic_implementation/trained_models/kick_policy.pth'
 
 # Class that contains the whole algorithm
 class SAC():
