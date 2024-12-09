@@ -13,7 +13,7 @@ from SoftActorCritic_implementation.src.algorithm.gaussian_replay_buffer import 
 import SoftActorCritic_implementation.src.utils.utils as utils
 
 # Path where to save policy model
-POLICY_DIR = '/home/flavio/Scrivania/RoboCup/spqrnao2024/external_client/SoftActorCritic_implementation/trained_models/kick_policy.pth'
+POLICY_DIR = os.path.join(os.getcwd(), 'SoftActorCritic_implementation/trained_models/kick_policy.pth')
 
 # Class that contains the whole algorithm
 class SAC():
@@ -34,7 +34,7 @@ class SAC():
     def __init__(self, environment=None, lr = 0.0003, buffer_size = 10000, batch_size = 100, tau = 0.005, gamma = 0.99,
                  gradient_steps = 1, ent_coef = "auto", learning_starts = 500, 
                  device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu'),
-                 tensorboard_log = '/home/flavio/Scrivania/Soft-Actor-Critic-implementation/logs'):
+                 tensorboard_log = '/home/flavio/Scrivania/SoftActorCritic_implementation/logs'):
         
         self.device = device
         self.tensorboard_log = tensorboard_log
@@ -164,7 +164,7 @@ class SAC():
                 observation = next_state
                 reward_record.append(reward)
                 
-                if num_total_steps > self.learning_starts:
+                if num_total_steps >= self.learning_starts:
                     # 10) For the number of update steps
                     for j in range(self.gradient_steps):
                         # 11) Sample randomly a batch of transitions
