@@ -58,11 +58,11 @@ class GaussianReplayBuffer:
         - next_state:               ending state of the transition
         - done:                     (bool) if episode is terminated
     '''
-    def store_transition(self, state, action, reward, next_state, done):
+    def store_transition(self, state, action, reward, next_state, done, q1_value):
         # This is done because, after the buffer is full,
         # it restarts writing from the beginning
 
-        i = self.find_index(reward)        
+        i = self.find_index(abs(reward-q1_value))        
         # buffer[index+1:] = buffer[index:-1]
 
         # Insert in the i-th position of the buffers the element
@@ -73,24 +73,12 @@ class GaussianReplayBuffer:
         self.action_buffer[i] = action
 
         self.reward_buffer = np.insert(self.reward_buffer, i, reward)
+        self.reward_buffer = np.delete(self.reward_buffer, -1)
         
         self.next_state_buffer[i+1:] = self.next_state_buffer[i:-1]
         self.next_state_buffer[i] = next_state
         
         self.done_buffer = np.insert(self.done_buffer, i, done)
-
-
-        # self.state_buffer[i+1:] = self.state_buffer[i:-1]
-        # self.state_buffer[i] = state
-
-        # self.action_buffer = np.insert(self.action_buffer, i, action)
-        # self.next_state_buffer = np.insert(self.next_state_buffer, i, next_state)
-
-        # # Delete last element of the buffers because they increased by one after the insert
-        # self.state_buffer = np.delete(self.state_buffer, -1)
-        # self.action_buffer = np.delete(self.action_buffer, -1)
-        self.reward_buffer = np.delete(self.reward_buffer, -1)
-        # self.next_state_buffer = np.delete(self.next_state_buffer, -1)
         self.done_buffer = np.delete(self.done_buffer, -1)
 
         # Increase index of the last element of the buffers

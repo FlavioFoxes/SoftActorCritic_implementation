@@ -142,25 +142,30 @@ class SAC():
             while not done:     
                 # 4) Save the state as a tensor           
                 state = torch.tensor(observation, dtype=torch.float32).unsqueeze(0).to(self.device)
-                
                 # 4) Sample an action
                 # If learning is not already started, sample a casual action form the action space
                 if num_total_steps < self.learning_starts:
                     action = self.env.action_space.sample()
+                    action_tensor = torch.tensor([action], dtype=torch.float32).to(self.device)
                 # else sample the action through the policy
                 else:
-                    action, _ = self.policy.sample_action_logprob(state, reparam_trick=False)
+                    action_tensor, _ = self.policy.sample_action_logprob(state, reparam_trick=False)
                     # NOTE: Tensor is on device (that can be also cuda), to convert it to numpy array
                     #       it needs it's on cpu and requires_grad=False, so we need to detach it
                     #       (https://stackoverflow.com/questions/49768306/pytorch-tensor-to-numpy-array)
-                    action = action[0].detach().to('cpu').numpy()
-                
+                    action = action_tensor[0].detach().to('cpu').numpy()
+
+                with torch.no_grad():
+                    # print("STATE:       ", state)
+                    # print("ACTION:      ", action_tensor)
+                    q1_value = self.q1_network(state, action_tensor).item()
+                    print(q1_value)
                 # 5-6) Make a step in the environment, and observe (next state, reward, done)
                 next_state, reward, terminated, truncated, _ = self.env.step(action)
                 done = terminated or truncated
                 
                 # 7) Store the transition in the replay buffer
-                self.replay_buffer.store_transition(observation, action, reward, next_state, done)
+                self.replay_buffer.store_transition(observation, action, reward, next_state, done, q1_value)
                 observation = next_state
                 reward_record.append(reward)
                 
