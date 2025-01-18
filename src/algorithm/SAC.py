@@ -39,6 +39,9 @@ class SAC():
         self.device = device
         self.tensorboard_log = tensorboard_log
         self.env = environment
+        self.early_stop_counter = 0
+        self.early_stop_threshold = 5
+        self.previous_next_state = None
 
         self.replay_buffer = GaussianReplayBuffer(max_size=buffer_size, state_dim=environment.observation_space.shape[0], action_dim=environment.action_space.shape[0])
         self.q1_network = CriticNetwork(state_dim=environment.observation_space.shape, action_dim=environment.action_space.shape)
@@ -158,7 +161,14 @@ class SAC():
                 # 5-6) Make a step in the environment, and observe (next state, reward, done)
                 next_state, reward, terminated, truncated, _ = self.env.step(action)
                 done = terminated or truncated
-                
+                # Check if the new solution is the same of previous episode
+                if(self.previous_next_state is None or not (self.previous_next_state[:6] == next_state[:6]).all()):
+                    # comparison = self.previous_next_state[:6] == next_state[:6]
+                    self.early_stop_counter = 0
+                    self.previous_next_state = next_state
+                else:
+                    self.early_stop_counter += 1
+
                 # 7) Store the transition in the replay buffer
                 self.replay_buffer.store_transition(observation, action, reward, next_state, done)
                 observation = next_state
@@ -247,6 +257,12 @@ class SAC():
                 self.writer.add_scalar("ACTOR-Loss per episode", actor_loss.item(), i)
                 self.writer.add_scalar("Alpha value", self.alpha, i)
 
+            # If the solution was the same in the previous 5 episode, terminate the training phase
+            if self.early_stop_counter >= self.early_stop_threshold:
+                print("Early stopped...")
+                break
+            print("----------------------------------")
+            
         # Save policy
         self.save()
 
